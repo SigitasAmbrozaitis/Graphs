@@ -1,0 +1,10 @@
+<RCC>
+    <qresource prefix="/Colors">
+        <file>Recourses/available.png</file>
+        <file>Recourses/current.png</file>
+        <file>Recourses/end.png</file>
+        <file>Recourses/notAvailable.png</file>
+        <file>Recourses/start.png</file>
+        <file>Recourses/visited.png</file>
+    </qresource>
+</RCC>

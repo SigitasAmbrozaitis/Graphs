@@ -1,0 +1,2 @@
+http://doc.qt.io/qt-5/threads-technologies.html
+https://www.youtube.com/watch?v=b35JF4LqtBs
