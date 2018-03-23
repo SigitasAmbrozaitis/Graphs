@@ -3,7 +3,6 @@
 #include "QPainter"
 #include "globals.h"
 #include "QGraphicsSceneMouseEvent"
-//extern NodeStatus status;
 
 MapNode::MapNode(qreal x, qreal y, qreal width, qreal height, QGraphicsItem *parent):QGraphicsRectItem(x, y, width, height, parent)
 {
@@ -13,32 +12,27 @@ MapNode::MapNode(qreal x, qreal y, qreal width, qreal height, QGraphicsItem *par
     setNodeStatus(NodeStatus::awailable);
     setLocation(x, y);
     size = width;
-    //brush = new QBrush(Qt::red);
 
 }
 
-/*QRectF MapNode::boundingRect() const
-{
-    return QRectF(mapX/size,mapY/size, size,size);
-}*/
-
 void MapNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
 {
-    //qDebug()<< "painter is working:" << pressed;
     QRectF rectangle = boundingRect();
     QBrush brush(Qt::blue);
+    //initial paint so that the view would have one color
     if(!painted)
     {
         painter->fillRect(rectangle, brush);
         painter->drawRect(rectangle);
         painted = true;
     }
+    //sets brush color depending on node status
     if(pressed || changed)
     {
         switch(nodeStatus)
         {
             case NodeStatus::start:
-            brush.setColor(Qt::green);
+            brush.setColor(Qt::red);
             break;
 
             case NodeStatus::end:
@@ -67,6 +61,7 @@ void MapNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, Q
         }
         changed = false;
     }
+    //paints node
     painter->fillRect(rectangle, brush);
     painter->drawRect(rectangle);
 }
@@ -84,8 +79,6 @@ void MapNode::setSize(int size)
 
 void MapNode::setNodeStatus(NodeStatus statusToSet)
 {
-
-    //prepareGeometryChange();
     nodeStatus = statusToSet;
     changed = true;
     update(boundingRect());
@@ -123,13 +116,14 @@ NodeStatus MapNode::getNodeStatus()
 
 void MapNode::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
+    //if pressed but status changed
     if(status != nodeStatus && pressed)
     {
         pressed = false;
     }
+    //if not pressed yet
     if(!pressed)
     {
-        qDebug()<< "new node is pressed, press event";
         pressed = true;
         setNodeStatus(status);
     }

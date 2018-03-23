@@ -32,10 +32,9 @@ private:
     int nodeIndex;
     NodeStatus nodeStatus;
 
-    bool pressed;
-    bool painted;
-    bool changed;
-
+    bool pressed;   //boolean true if node is pressed
+    bool painted;   //boolean true if node is painted  TODO inspect if used as intended
+    bool changed;   //boolean true if node was changed TODO inspect if used as intended
 
 };
 

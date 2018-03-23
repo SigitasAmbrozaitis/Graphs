@@ -6,7 +6,7 @@
 #include "windows.h"
 #include "simplenode.h"
 #include "QThread"
-//TODO implement my own graphic view that allows zooming in, or implement zoom for existing, if possible(connect to sliders)
+
 
 //IDEA nr1
 //buttons only set booleans that allow:
@@ -24,17 +24,19 @@
 //both ideas should not lock interface and display realtime pathfinding
 
 NodeStatus status = NodeStatus::nothing;    //status that says what type is selected with toggles for painting
-
+QQueue<SimpleNode *> NodesToPaint;
+QQueue<SimpleNode *> PathToPaint;
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
     status = NodeStatus::nothing;
+    //dynamic allocations
     generator =  new Generator();
-    defaultViewTransform = ui->graphicsView->transform();
-
     pathFinding = new PathFinder();
     pathFindingThread = new QThread();
+
+    defaultViewTransform = ui->graphicsView->transform();
     pathFinding->setup(*pathFindingThread);
 
     QObject::connect(ui->ZoomSlider, SIGNAL(valueChanged(int)), this, SLOT(setViewScale()));
@@ -85,16 +87,14 @@ void MainWindow::testGenerator()
         scene->addItem(node);
     }
     qDebug() << "creating simple map";
-    createSimpleNodeContainer();
+    //createSimpleNodeContainer();
     qDebug() << "simple map created";
 
-    pathFinding->giveData(simpleData);
+   /* pathFinding->giveData(simpleData,50,50);
     pathFinding->moveToThread(pathFindingThread);
-    pathFindingThread->start();
+    pathFindingThread->start();*/
 
 }
-
-
 
 void MainWindow::createSimpleNodeContainer()
 {
@@ -144,7 +144,6 @@ void MainWindow::on_AwailableEnum_toggled(bool checked)
     }
 }
 
-
 void MainWindow::on_pushButton_clicked()
 {
     testGenerator();
@@ -157,4 +156,15 @@ void MainWindow::on_ClosedEnum_toggled(bool checked)
     {
         status = NodeStatus::closed;
     }
+}
+
+
+void MainWindow::on_FindButton_clicked()
+{
+    qDebug() <<"im clicked";
+    createSimpleNodeContainer();
+    pathFinding->giveData(simpleData,50,50);
+    pathFinding->moveToThread(pathFindingThread);
+    pathFindingThread->start();
+    qDebug() << "i stop being clicked";
 }

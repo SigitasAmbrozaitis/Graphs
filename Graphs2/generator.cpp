@@ -23,12 +23,10 @@ void Generator::setOptions(int x, int y, int rate, int nodeSize)
     }
     this->nodeSize = nodeSize;
     ready = true;
-    qDebug() << "options set";
 }
 
 QList<MapNode *> Generator::getGenerated()
 {
-    qDebug() << "returning generated";
     return data;
 }
 
