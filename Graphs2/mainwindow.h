@@ -32,14 +32,20 @@ private:
     class Generator * generator;            //object that generates data map
     class PathFinder * pathFinding;         //object that find path in simpleData
     class QThread * pathFindingThread;      //thread that is responsible for BFS work
+    class QMutex * mutex;                   //mutex that controls NodesToPaint PathToPaint access
     QTransform  defaultViewTransform;       //contains default view for scaling
-
+    class QTimer * paintTimer;
+    class QTimer * pathTimer;
 
 
     void createSimpleNodeContainer();       //creates QList contianing SimpleNodes from MapNodes
 
 public slots:
     void setViewScale();                        //changes view scale, connected with ZoomSlider
+    void startPainting();
+    void showPath();
+    void paintNode();
+    void paintPathNode();
 
 private slots:
     void on_StartEnum_toggled(bool checked);    //toggle in GUI if picked changes global variable status

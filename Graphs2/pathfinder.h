@@ -2,6 +2,7 @@
 #define PATHFINDING_H
 #include "simplenode.h"
 #include "QObject"
+
 class PathFinder : public QObject
 {
     Q_OBJECT
@@ -14,8 +15,10 @@ public:
 public slots:
     void process();             //main function to launch algorythm
 signals:
+    void pathSearchStarted();   //
+    void pathFound();
     void finished();            //signal that thread has done its work
-    void error(QString err);    //signal to emit erro
+    void error(class QString err);    //signal to emit erro
 
 private:      
     bool dataIsSet;             //boolean, true is mapData is set
@@ -25,6 +28,7 @@ private:
     int mapY;                   //map y height
     SimpleNode * start;         //node from where algorith will start
     SimpleNode * end;           //end of path
+    class QMutex * mutex;
 
     bool setStart();        //sets starting node
     bool findPath();        //runs bfs algorithm

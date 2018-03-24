@@ -35,11 +35,11 @@ void Generator::generate()
     if(!ready){return;}
     MapNode * node;
     int rnd;
-    for(int j=0; j<x; ++j)
+    for(int j=0; j<y; ++j)
     {
-        for(int i=0; i<y; ++i)
+        for(int i=0; i<x; ++i)
         {
-            node = new MapNode(j*nodeSize,i*nodeSize,nodeSize, nodeSize);
+            node = new MapNode(i*nodeSize,j*nodeSize,nodeSize, nodeSize);
             rnd = rand()%100;
             if(rnd < rate)
             {

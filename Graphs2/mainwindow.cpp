@@ -6,6 +6,7 @@
 #include "windows.h"
 #include "simplenode.h"
 #include "QThread"
+#include "QTimer"
 
 
 //IDEA nr1
@@ -35,11 +36,19 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),ui(new Ui::MainWin
     generator =  new Generator();
     pathFinding = new PathFinder();
     pathFindingThread = new QThread();
+    paintTimer = new QTimer();
+    pathTimer = new QTimer();
 
     defaultViewTransform = ui->graphicsView->transform();
     pathFinding->setup(*pathFindingThread);
 
     QObject::connect(ui->ZoomSlider, SIGNAL(valueChanged(int)), this, SLOT(setViewScale()));
+
+    connect(pathFinding, SIGNAL(pathSearchStarted()), this, SLOT(startPainting()));
+    connect(pathFinding,SIGNAL(pathFound()), this, SLOT(showPath()));
+
+    connect(paintTimer, SIGNAL(timeout()), this, SLOT(paintNode()));
+    connect(pathTimer, SIGNAL(timeout()), this, SLOT(paintPathNode()));
 }
 
 MainWindow::~MainWindow()
@@ -75,7 +84,7 @@ void MainWindow::testGenerator()
     ui->graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
     ui->graphicsView->setUpdatesEnabled(true);
 
-    generator->setOptions(50,50,100, 10);
+    generator->setOptions(50,40,100, 20);
 
     generator->generate();
     data = generator->getGenerated();
@@ -86,6 +95,9 @@ void MainWindow::testGenerator()
         node->setIndex(index++);
         scene->addItem(node);
     }
+    pathTimer->stop();
+    paintTimer->stop();
+
     qDebug() << "creating simple map";
     //createSimpleNodeContainer();
     qDebug() << "simple map created";
@@ -103,6 +115,7 @@ void MainWindow::createSimpleNodeContainer()
     {
         newNode = new SimpleNode(node);
         simpleData.append(newNode);
+        qDebug() << "index:" << newNode->index << " status:" << newNode->nodeStatus << " x:" << newNode->x << " y:" << newNode->y;
     }
 }
 
@@ -118,6 +131,33 @@ void MainWindow::setViewScale()
     transform.scale(currentScale, currentScale);
     ui->graphicsView->setTransform(transform);
 
+}
+
+void MainWindow::startPainting()
+{
+    qDebug() << "timer started";
+    paintTimer->start();
+}
+
+void MainWindow::showPath()
+{
+    pathTimer->start();
+}
+
+void MainWindow::paintNode()
+{
+    if(NodesToPaint.empty()){return;}
+    SimpleNode * node = NodesToPaint.dequeue();
+    MapNode * nodeToEdit = data.at(node->index);
+    nodeToEdit->setNodeStatus(node->nodeStatus);
+}
+
+void MainWindow::paintPathNode()
+{
+    if(PathToPaint.empty()){return;}
+    SimpleNode * node = PathToPaint.dequeue();
+    MapNode * nodeToEdit = data.at(node->index);
+    nodeToEdit->setNodeStatus(node->nodeStatus);
 }
 
 void MainWindow::on_StartEnum_toggled(bool checked)
@@ -161,10 +201,8 @@ void MainWindow::on_ClosedEnum_toggled(bool checked)
 
 void MainWindow::on_FindButton_clicked()
 {
-    qDebug() <<"im clicked";
     createSimpleNodeContainer();
-    pathFinding->giveData(simpleData,50,50);
+    pathFinding->giveData(simpleData,50,40);
     pathFinding->moveToThread(pathFindingThread);
     pathFindingThread->start();
-    qDebug() << "i stop being clicked";
 }
