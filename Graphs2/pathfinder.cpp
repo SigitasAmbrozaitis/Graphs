@@ -17,6 +17,7 @@ PathFinder::PathFinder()
 void PathFinder::setup(QThread &thread)
 {
     connect(&thread,SIGNAL(started()), this, SLOT(process()));
+    connect(this, SIGNAL(finished()), &thread, SLOT(terminate()));
 }
 
 void PathFinder::giveData(QList<SimpleNode *> &data, int x, int y)
@@ -41,18 +42,20 @@ bool PathFinder::setStart()
     }
     return valueToReturn;
 }
-//TODO find crash couse in find path or deeper
+
 bool PathFinder::findPath()
 {
     emit pathSearchStarted();
-    qDebug() << "searching for path";
     QQueue<SimpleNode *> queue;
     start->nodeStatus = NodeStatus::visited;
     queue.enqueue(start);
 
+    int counter = 0;
     while(!queue.empty() && !pathIsFound)
     {
         findAdjacent(queue.dequeue(), queue);
+        if(counter++ %25 == 0){_sleep(1);}
+
     }
     pathFinderDone = true;
     return pathIsFound;
@@ -62,26 +65,25 @@ void PathFinder::traceBack()
 {
     if(!pathIsFound) { return; }
     emit pathFound();
-    qDebug() << "tracing back";
     SimpleNode * currentNode = end;
-    while(currentNode != nullptr)
+    while(currentNode != start)
     {
-        qDebug() << "for working";
         currentNode->nodeStatus = NodeStatus::path;
         mutex->lock();
         PathToPaint.enqueue(currentNode); //add mutex
         mutex->unlock();
-        currentNode = currentNode->previous;
-        qDebug() << "for ending";
+        emit paintPathNode();
+        _sleep(5);        currentNode = currentNode->previous;
     }
-    qDebug() << "finished tracing back";
 }
 
 void PathFinder::process()
 {
-    if(!dataIsSet){ qDebug()<< "map data was not set" ; return;}
-    if(!setStart()){qDebug()<< "map start was not found" ; return;}
-    if(!findPath()){qDebug()<< "map path was not found" ; return;}
+    if(!dataIsSet){ qDebug()<< "map data was not set" ;emit finished(); return;}
+    if(!setStart()){qDebug()<< "map start was not found" ;emit finished(); return;}
+    if(!findPath()){qDebug()<< "map path was not found" ;emit finished(); return;}
+    traceBack();
+    emit finished();
 }
 
 void PathFinder::findAdjacent(SimpleNode *node, QQueue<SimpleNode *> &dataToAppendTo)
@@ -144,4 +146,5 @@ void PathFinder::setNeighborNode(SimpleNode *node, SimpleNode *previous)
     mutex->lock();
     NodesToPaint.enqueue(node); //add mutex
     mutex->unlock();
+    emit paintActionNode();
 }

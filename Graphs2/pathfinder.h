@@ -17,6 +17,9 @@ public slots:
     void process();             //main function to launch algorythm
     void traceBack();           //traces back the path
 signals:
+    void paintActionNode();
+    void paintPathNode();
+
     void pathSearchStarted();   //
     void pathFound();
     void finished();            //signal that thread has done its work

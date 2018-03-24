@@ -32,83 +32,52 @@ QQueue<SimpleNode *> PathToPaint;
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    //inicialization
     status = NodeStatus::nothing;
+    findPressed = false;
+    mapGenerated = false;
+    mapSize = 5;
+    mapNodeSize = 2;
+    nodeRarity = 0;
+
     //dynamic allocations
+    mutex = new QMutex();
     generator =  new Generator();
     pathFinding = new PathFinder();
     pathFindingThread = new QThread();
-    paintTimer = new QTimer();
-    pathTimer = new QTimer();
-    mutex = new QMutex();
 
+    //set up transform
     defaultViewTransform = ui->graphicsView->transform();
-    pathFinding->setup(*pathFindingThread);
 
-    QObject::connect(ui->ZoomSlider, SIGNAL(valueChanged(int)), this, SLOT(setViewScale()));
+    //Set up scene
+    scene = new QGraphicsScene(this);
+    ui->graphicsView->setScene(scene);
+    ui->graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
+    ui->graphicsView->setUpdatesEnabled(true);
 
-    connect(pathFinding, SIGNAL(pathSearchStarted()), this, SLOT(startPainting()));
-    connect(pathFinding,SIGNAL(pathFound()), this, SLOT(showPath()));
+    //set up zoom cganging
+    connect(ui->ZoomSlider, SIGNAL(valueChanged(int)), this, SLOT(setViewScale()));
 
-    connect(paintTimer, SIGNAL(timeout()), this, SLOT(paintNode()));
-    connect(pathTimer, SIGNAL(timeout()), this, SLOT(paintPathNode()));
-    connect(this, SIGNAL(pathPainted()), pathFinding, SLOT(traceBack()));
+    //set up map size changing
+    connect(ui->MapSizeSlider, SIGNAL(valueChanged(int)), this, SLOT(setMapSize()));
+    connect(ui->MapSizeSlider, SIGNAL(valueChanged(int)), ui->MapSizeSpinBox, SLOT(setValue(int)));
+    connect(ui->MapSizeSpinBox, SIGNAL(valueChanged(int)), ui->MapSizeSlider, SLOT(setValue(int)));
+
+    //set up map node size changing
+    connect(ui->MapNodeSizeSlider, SIGNAL(valueChanged(int)), this, SLOT(setMapNodeSize()));
+    connect(ui->MapNodeSizeSlider, SIGNAL(valueChanged(int)), ui->MapNodeSizeSpinBox, SLOT(setValue(int)));
+    connect(ui->MapNodeSizeSpinBox, SIGNAL(valueChanged(int)), ui->MapNodeSizeSlider, SLOT(setValue(int)));
+
+    //set up awailable node rarity
+    connect(ui->RaritySlider, SIGNAL(valueChanged(int)), this, SLOT(setNodeRarity()));
+    connect(ui->RaritySlider, SIGNAL(valueChanged(int)), ui->RaritySpinBox, SLOT(setValue(int)));
+    connect(ui->RaritySpinBox, SIGNAL(valueChanged(int)), ui->RaritySlider, SLOT(setValue(int)));
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
-}
-
-void MainWindow::test()
-{
-
-    QGraphicsScene * scene = new QGraphicsScene(this);
-    //scene->setSceneRect(0, 0, 1000, 1000);
-    ui->graphicsView->setScene(scene);
-    int size =10;
-    for(int j=0; j<30;++j)
-    {
-        for(int i = 0; i<30; ++i)
-        {
-            MapNode * node = new MapNode(i*size, j*size, size, size);
-            scene->addItem(node);
-            data.append(node);
-        }
-    }
-
-
-
-}
-
-void MainWindow::testGenerator()
-{
-    QGraphicsScene * scene = new QGraphicsScene(this);
-    ui->graphicsView->setScene(scene);
-    ui->graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
-    ui->graphicsView->setUpdatesEnabled(true);
-
-    generator->setOptions(50,50,70, 10);
-
-    generator->generate();
-    data = generator->getGenerated();
-    qDebug() << "started iterating";
-    int index = 0;
-    for(MapNode * node : data)
-    {
-        node->setIndex(index++);
-        scene->addItem(node);
-    }
-    pathTimer->stop();
-    paintTimer->stop();
-
-    qDebug() << "creating simple map";
-    //createSimpleNodeContainer();
-    qDebug() << "simple map created";
-
-   /* pathFinding->giveData(simpleData,50,50);
-    pathFinding->moveToThread(pathFindingThread);
-    pathFindingThread->start();*/
-
 }
 
 void MainWindow::createSimpleNodeContainer()
@@ -121,6 +90,24 @@ void MainWindow::createSimpleNodeContainer()
     }
 }
 
+void MainWindow::deleteOldMap()
+{
+    //clearing scene
+    scene->clear();
+
+    //clearing all containers
+    data.clear();
+    NodesToPaint.clear();
+    PathToPaint.clear();
+    simpleData.clear();
+
+    //deleting used objects
+    delete generator;
+    delete pathFinding;
+    delete pathFindingThread;
+    findPressed = false;
+}
+
 void MainWindow::setViewScale()
 {
     float currentScale = ui->ZoomSlider->value();
@@ -128,46 +115,46 @@ void MainWindow::setViewScale()
     {
         currentScale = -1 / currentScale;
     }
-    QTransform transform = defaultViewTransform;
+    if(currentScale ==0)
+    {
+        ui->graphicsView->setTransform(defaultViewTransform);
+    }else
+    {
+        QTransform transform = defaultViewTransform;
 
-    transform.scale(currentScale, currentScale);
-    ui->graphicsView->setTransform(transform);
-
+        transform.scale(currentScale, currentScale);
+        ui->graphicsView->setTransform(transform);
+    }
 }
 
-void MainWindow::startPainting()
+void MainWindow::setMapSize()
 {
-    paintTimer->start(1);
+    mapSize = ui->MapSizeSlider->value();
 }
 
-void MainWindow::showPath()
+void MainWindow::setMapNodeSize()
 {
-    qDebug() << "printing path";
-    pathTimer->start(1);
+    mapNodeSize = ui->MapNodeSizeSlider->value();
+}
+
+void MainWindow::setNodeRarity()
+{
+    nodeRarity = ui->RaritySlider->value();
 }
 
 void MainWindow::paintNode()
 {
-
-    if(NodesToPaint.empty() && pathFinding->pathFinderDone){emit pathPainted(); pathTimer->stop(); return;}
     if(NodesToPaint.empty()){return;}
     mutex->lock();
     SimpleNode * node = NodesToPaint.dequeue();
     mutex->unlock();
     MapNode * nodeToEdit = data.at(node->index);
     nodeToEdit->setNodeStatus(node->nodeStatus);
-
 }
 
 void MainWindow::paintPathNode()
 {
-    qDebug() << "paint path node called";
-    bool status;
-    mutex->lock();
-    status = PathToPaint.empty();
-    mutex->unlock();
-
-    if(status){return;}
+    if(PathToPaint.empty()){return;}
     mutex->lock();
     SimpleNode * node = PathToPaint.dequeue();
     mutex->unlock();
@@ -199,12 +186,6 @@ void MainWindow::on_AwailableEnum_toggled(bool checked)
     }
 }
 
-void MainWindow::on_pushButton_clicked()
-{
-    testGenerator();
-    qDebug() << "exited generator";
-}
-
 void MainWindow::on_ClosedEnum_toggled(bool checked)
 {
     if(checked)
@@ -213,11 +194,38 @@ void MainWindow::on_ClosedEnum_toggled(bool checked)
     }
 }
 
-
 void MainWindow::on_FindButton_clicked()
 {
+    if(!mapGenerated || findPressed) { return; }
+    pathFinding->setup(*pathFindingThread);
+
+    connect(pathFinding, SIGNAL(paintActionNode()), this, SLOT(paintNode()));
+    connect(pathFinding, SIGNAL(paintPathNode()), this, SLOT(paintPathNode()));
+
     createSimpleNodeContainer();
-    pathFinding->giveData(simpleData,50,50);
+    pathFinding->giveData(simpleData,mapSize,mapSize);
     pathFinding->moveToThread(pathFindingThread);
     pathFindingThread->start();
+    findPressed = true;
+}
+
+void MainWindow::on_GenerateMapButton_clicked()
+{
+    deleteOldMap();
+    qDebug() << "deleted";
+    pathFinding = new PathFinder();
+    pathFindingThread = new QThread();
+    generator = new Generator();
+
+    generator->setOptions(mapSize, mapSize, nodeRarity, mapNodeSize);
+    generator->generate();
+    data = generator->getGenerated();
+
+    int index = 0;
+    for(MapNode * node : data)
+    {
+        node->setIndex(index++);
+        scene->addItem(node);
+    }
+    mapGenerated = true;
 }
