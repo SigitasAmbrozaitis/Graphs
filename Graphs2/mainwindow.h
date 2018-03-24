@@ -54,6 +54,8 @@ private slots:
     void on_ClosedEnum_toggled(bool checked);   //toggle in GUI if picked changes global variable status
     void on_pushButton_clicked();               //button in GUI if pressed starts test functions TODO delete or change function and name
     void on_FindButton_clicked();
+signals:
+    void pathPainted();
 };
 
 

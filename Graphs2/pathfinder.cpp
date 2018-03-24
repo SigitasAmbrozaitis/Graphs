@@ -8,6 +8,7 @@ PathFinder::PathFinder()
 {
     dataIsSet = false;
     pathIsFound = false;
+    pathFinderDone = false;
     start = nullptr;
     end = nullptr;
     mutex = new QMutex();
@@ -53,39 +54,34 @@ bool PathFinder::findPath()
     {
         findAdjacent(queue.dequeue(), queue);
     }
+    pathFinderDone = true;
     return pathIsFound;
 }
 
 void PathFinder::traceBack()
 {
+    if(!pathIsFound) { return; }
+    emit pathFound();
     qDebug() << "tracing back";
     SimpleNode * currentNode = end;
     while(currentNode != nullptr)
     {
+        qDebug() << "for working";
         currentNode->nodeStatus = NodeStatus::path;
         mutex->lock();
         PathToPaint.enqueue(currentNode); //add mutex
         mutex->unlock();
         currentNode = currentNode->previous;
+        qDebug() << "for ending";
     }
     qDebug() << "finished tracing back";
 }
 
 void PathFinder::process()
 {
-    qDebug() << "thread started";
-    qDebug() << "setting up data";
     if(!dataIsSet){ qDebug()<< "map data was not set" ; return;}
-    qDebug() << "setting up start";
     if(!setStart()){qDebug()<< "map start was not found" ; return;}
-    qDebug() << "setting up path";
     if(!findPath()){qDebug()<< "map path was not found" ; return;}
-    qDebug() << "setting up traceback";
-    emit pathFound();
-    traceBack();
-    //emit signal that work is done
-    //do all process of algorytm here
-    qDebug() << "thread ended";
 }
 
 void PathFinder::findAdjacent(SimpleNode *node, QQueue<SimpleNode *> &dataToAppendTo)
@@ -95,7 +91,6 @@ void PathFinder::findAdjacent(SimpleNode *node, QQueue<SimpleNode *> &dataToAppe
     //node right neighboor exists
     if(((index + 1) % mapX) != 0  &&  index != mapData.length()-1)
     {
-        qDebug() << "right";
         temp = mapData.at(index+1);
         if(temp->nodeStatus != NodeStatus::visited && temp->nodeStatus!= NodeStatus::closed)
         {
@@ -107,10 +102,7 @@ void PathFinder::findAdjacent(SimpleNode *node, QQueue<SimpleNode *> &dataToAppe
     //node left neighboor
     if(((index)%mapX) != 0 && index != 0)
     {
-        qDebug() << "left";
-        qDebug() << "index:" << index;
         temp = mapData.at(index-1);
-        qDebug() << "index:" <<temp->index << " status:" << temp->nodeStatus << " x:" << temp->x << " y:" << temp->y;
         if(temp->nodeStatus != NodeStatus::visited && temp->nodeStatus!= NodeStatus::closed)
         {
             setNeighborNode(temp, node);
@@ -120,7 +112,6 @@ void PathFinder::findAdjacent(SimpleNode *node, QQueue<SimpleNode *> &dataToAppe
     //node up neighboor
     if(index-mapX >=0)
     {
-        qDebug() << "up";
         temp = mapData.at(index-mapX);
         if(temp->nodeStatus != NodeStatus::visited && temp->nodeStatus!= NodeStatus::closed)
         {
@@ -131,7 +122,6 @@ void PathFinder::findAdjacent(SimpleNode *node, QQueue<SimpleNode *> &dataToAppe
     //node down neighboor
     if(index < mapX * (mapY-1))
     {
-        qDebug() << "down";
         temp = mapData.at(index+mapX);
         if(temp->nodeStatus != NodeStatus::visited && temp->nodeStatus!= NodeStatus::closed)
         {
@@ -139,7 +129,6 @@ void PathFinder::findAdjacent(SimpleNode *node, QQueue<SimpleNode *> &dataToAppe
             dataToAppendTo.enqueue(temp);
         }
     }
-
 }
 
 void PathFinder::setNeighborNode(SimpleNode *node, SimpleNode *previous)

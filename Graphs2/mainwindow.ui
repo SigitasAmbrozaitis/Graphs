@@ -27,8 +27,8 @@
    <widget class="QRadioButton" name="StartEnum">
     <property name="geometry">
      <rect>
-      <x>0</x>
-      <y>30</y>
+      <x>20</x>
+      <y>130</y>
       <width>82</width>
       <height>17</height>
      </rect>
@@ -40,8 +40,8 @@
    <widget class="QRadioButton" name="EndEnum">
     <property name="geometry">
      <rect>
-      <x>0</x>
-      <y>50</y>
+      <x>20</x>
+      <y>150</y>
       <width>82</width>
       <height>17</height>
      </rect>
@@ -53,8 +53,8 @@
    <widget class="QRadioButton" name="AwailableEnum">
     <property name="geometry">
      <rect>
-      <x>0</x>
-      <y>70</y>
+      <x>20</x>
+      <y>170</y>
       <width>82</width>
       <height>17</height>
      </rect>
@@ -98,8 +98,8 @@
    <widget class="QRadioButton" name="ClosedEnum">
     <property name="geometry">
      <rect>
-      <x>0</x>
-      <y>90</y>
+      <x>20</x>
+      <y>190</y>
       <width>82</width>
       <height>17</height>
      </rect>

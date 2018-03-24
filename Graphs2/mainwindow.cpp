@@ -7,6 +7,7 @@
 #include "simplenode.h"
 #include "QThread"
 #include "QTimer"
+#include "QMutex"
 
 
 //IDEA nr1
@@ -38,6 +39,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),ui(new Ui::MainWin
     pathFindingThread = new QThread();
     paintTimer = new QTimer();
     pathTimer = new QTimer();
+    mutex = new QMutex();
 
     defaultViewTransform = ui->graphicsView->transform();
     pathFinding->setup(*pathFindingThread);
@@ -49,6 +51,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),ui(new Ui::MainWin
 
     connect(paintTimer, SIGNAL(timeout()), this, SLOT(paintNode()));
     connect(pathTimer, SIGNAL(timeout()), this, SLOT(paintPathNode()));
+    connect(this, SIGNAL(pathPainted()), pathFinding, SLOT(traceBack()));
 }
 
 MainWindow::~MainWindow()
@@ -84,7 +87,7 @@ void MainWindow::testGenerator()
     ui->graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
     ui->graphicsView->setUpdatesEnabled(true);
 
-    generator->setOptions(50,40,100, 20);
+    generator->setOptions(50,50,70, 10);
 
     generator->generate();
     data = generator->getGenerated();
@@ -115,7 +118,6 @@ void MainWindow::createSimpleNodeContainer()
     {
         newNode = new SimpleNode(node);
         simpleData.append(newNode);
-        qDebug() << "index:" << newNode->index << " status:" << newNode->nodeStatus << " x:" << newNode->x << " y:" << newNode->y;
     }
 }
 
@@ -135,27 +137,40 @@ void MainWindow::setViewScale()
 
 void MainWindow::startPainting()
 {
-    qDebug() << "timer started";
-    paintTimer->start();
+    paintTimer->start(1);
 }
 
 void MainWindow::showPath()
 {
-    pathTimer->start();
+    qDebug() << "printing path";
+    pathTimer->start(1);
 }
 
 void MainWindow::paintNode()
 {
+
+    if(NodesToPaint.empty() && pathFinding->pathFinderDone){emit pathPainted(); pathTimer->stop(); return;}
     if(NodesToPaint.empty()){return;}
+    mutex->lock();
     SimpleNode * node = NodesToPaint.dequeue();
+    mutex->unlock();
     MapNode * nodeToEdit = data.at(node->index);
     nodeToEdit->setNodeStatus(node->nodeStatus);
+
 }
 
 void MainWindow::paintPathNode()
 {
-    if(PathToPaint.empty()){return;}
+    qDebug() << "paint path node called";
+    bool status;
+    mutex->lock();
+    status = PathToPaint.empty();
+    mutex->unlock();
+
+    if(status){return;}
+    mutex->lock();
     SimpleNode * node = PathToPaint.dequeue();
+    mutex->unlock();
     MapNode * nodeToEdit = data.at(node->index);
     nodeToEdit->setNodeStatus(node->nodeStatus);
 }
@@ -202,7 +217,7 @@ void MainWindow::on_ClosedEnum_toggled(bool checked)
 void MainWindow::on_FindButton_clicked()
 {
     createSimpleNodeContainer();
-    pathFinding->giveData(simpleData,50,40);
+    pathFinding->giveData(simpleData,50,50);
     pathFinding->moveToThread(pathFindingThread);
     pathFindingThread->start();
 }
